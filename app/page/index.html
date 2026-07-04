@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KAAS 知识库</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#f3f5f7;
+      --panel:#ffffff;
+      --text:#1f2d3d;
+      --muted:#7a869a;
+      --brand:#1aa7ff;
+      --brand2:#5b7cfa;
+      --bubble-user:#1aa7ff;
+      --bubble-bot:#ffffff;
+      --border:#e6e9ef;
+      --shadow:0 10px 30px rgba(31,45,61,.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(26,167,255,.18), transparent 60%),
+                  radial-gradient(1000px 500px at 90% 10%, rgba(91,124,250,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:18px;
+    }
+
+    /* ===== 整体布局 ===== */
+    .app-shell{
+      width:100%;
+      max-width:1100px;
+      height:min(860px, 92vh);
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      display:flex;
+    }
+
+    /* ===== 左侧导航 ===== */
+    .sidebar{
+      width:200px;
+      min-width:200px;
+      border-right:1px solid var(--border);
+      display:flex;
+      flex-direction:column;
+      background:linear-gradient(180deg, rgba(26,167,255,.06), rgba(91,124,250,.06));
+    }
+    .sidebar-logo{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:16px 14px;
+      border-bottom:1px solid var(--border);
+    }
+    .logo-icon{
+      width:34px;height:34px;border-radius:10px;
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow:0 8px 18px rgba(26,167,255,.25);
+      flex:0 0 auto;
+    }
+    .logo-text{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+    }
+    .logo-text strong{font-size:14px}
+    .logo-text span{font-size:11px;color:var(--muted);margin-top:2px}
+
+    .nav-menu{
+      flex:1;
+      padding:10px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .nav-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      font-size:14px;
+      color:var(--text);
+      transition:background .2s;
+      user-select:none;
+      border:none;
+      background:none;
+      width:100%;
+      text-align:left;
+    }
+    .nav-item:hover{background:rgba(26,167,255,.08)}
+    .nav-item.active{
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
+      color:#fff;
+      font-weight:600;
+    }
+    .nav-item .nav-icon{font-size:18px;width:24px;text-align:center}
+
+    /* ===== 右侧内容区 ===== */
+    .main-area{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      min-width:0;
+    }
+    .panel{
+      display:none;
+      flex:1;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .panel.active{display:flex}
+
+    /* ===== 对话面板样式（原 chat.html） ===== */
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:10px 14px;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(90deg, rgba(26,167,255,.08), rgba(91,124,250,.08));
+    }
+    .topbar .brand{display:flex;align-items:center;gap:8px}
+    .topbar .brand strong{font-size:13px}
+    .top-actions{
+      margin-left:auto;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .pill{
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid var(--border);
+      padding:5px 8px;
+      border-radius:999px;
+      background:#fff;
+    }
+    .btn{
+      border:none;
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
+      color:#fff;
+      padding:7px 10px;
+      border-radius:10px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    .chat{
+      flex:1;
+      overflow:auto;
+      padding:14px 12px 8px;
+      background:linear-gradient(180deg, rgba(26,167,255,.04), transparent 40%),
+                 linear-gradient(0deg, rgba(91,124,250,.04), transparent 45%);
+    }
+    .dayline{
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      margin:6px 0 14px;
+    }
+    .msg{
+      display:flex;
+      gap:10px;
+      margin:10px 0;
+      align-items:flex-end;
+    }
+    .msg.user{justify-content:flex-end}
+    .msg > div:not(.avatar){
+      flex:1;
+      min-width:0;
+    }
+    .msg.user > div:not(.avatar){
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+    }
+    .avatar{
+      width:32px;height:32px;border-radius:10px;
+      background:#e9eef7;
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;
+      color:#3b4a5a;
+      flex:0 0 auto;
+    }
+    .avatar.bot{background:linear-gradient(135deg, rgba(26,167,255,.18), rgba(91,124,250,.18))}
+    .bubble{
+      max-width:min(680px, 74%);
+      display:inline-block;
+      border-radius:14px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      background:var(--bubble-bot);
+      position:relative;
+      line-height:1.55;
+      font-size:14px;
+      white-space:pre-wrap;
+      overflow-wrap:break-word;
+    }
+    .msg.user .bubble{
+      background:var(--bubble-user);
+      color:#fff;
+      border-color:transparent;
+    }
+    .meta{
+      font-size:11px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+    .msg.user .meta{color:rgba(255,255,255,.85)}
+    details.progress{
+      margin-top:8px;
+      border:1px dashed rgba(122,134,154,.45);
+      border-radius:12px;
+      padding:8px 10px;
+      background:rgba(122,134,154,.06);
+    }
+    details.progress summary{
+      cursor:pointer;
+      user-select:none;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .progress ul{margin:8px 0 0 18px;padding:0}
+    .progress li{margin:4px 0;font-size:12px;color:#56657a}
+
+    .typing{
+      display:inline-flex;gap:6px;align-items:center;
+    }
+    .dot{
+      width:7px;height:7px;border-radius:50%;
+      background:#9aa6b2;
+      animation:bounce 1.2s infinite ease-in-out;
+    }
+    .dot:nth-child(2){animation-delay:.15s}
+    .dot:nth-child(3){animation-delay:.3s}
+    @keyframes bounce{
+      0%,80%,100%{transform:translateY(0);opacity:.6}
+      40%{transform:translateY(-5px);opacity:1}
+    }
+
+    .answer-images{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .answer-images img{
+      display:block;
+      max-width:min(100%, 600px);
+      max-height:600px;
+      width:auto;
+      height:auto;
+      border-radius:12px;
+      border:1px solid var(--border);
+      box-shadow:0 10px 24px rgba(31,45,61,.10);
+      background:#fff;
+    }
+    .answer-images a{
+      font-size:12px;
+      color:var(--muted);
+      text-decoration:none;
+      word-break:break-all;
+    }
+
+    /* 实体候选选项按钮 */
+    .entity-options{
+      margin-top:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .entity-option-btn{
+      border:1.5px solid var(--brand);
+      background:#fff;
+      color:var(--brand);
+      padding:8px 16px;
+      border-radius:20px;
+      font-size:13px;
+      cursor:pointer;
+      transition:all .2s;
+      user-select:none;
+      font-weight:500;
+    }
+    .entity-option-btn:hover{
+      background:var(--brand);
+      color:#fff;
+      box-shadow:0 4px 12px rgba(26,167,255,.3);
+    }
+    .entity-option-btn.selected{
+      background:var(--brand);
+      color:#fff;
+      pointer-events:none;
+      opacity:.7;
+    }
+
+    .composer{
+      border-top:1px solid var(--border);
+      padding:10px 12px;
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+      background:#fff;
+    }
+    .composer textarea{
+      flex:1;
+      resize:none;
+      min-height:44px;
+      max-height:140px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      outline:none;
+      font-size:14px;
+      line-height:1.5;
+    }
+    .composer textarea:focus{border-color:rgba(26,167,255,.6);box-shadow:0 0 0 3px rgba(26,167,255,.12)}
+    .send{
+      width:80px;
+      height:44px;
+      border:none;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:14px;
+      color:#fff;
+      background:linear-gradient(135deg, var(--brand), var(--brand2));
+    }
+    .send:disabled{opacity:.6;cursor:not-allowed}
+    .hint{
+      padding:0 12px 10px;
+      color:var(--muted);
+      font-size:12px;
+      background:#fff;
+    }
+    .kbd{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      border:1px solid var(--border);
+      padding:1px 6px;
+      border-radius:6px;
+      background:#f7f9fc;
+      color:#3b4a5a;
+    }
+
+    /* ===== 导入面板样式（原 import.html，加 import- 前缀） ===== */
+    .import-container{
+      flex:1;
+      overflow:auto;
+      padding:20px;
+      display:flex;
+      justify-content:center;
+    }
+    .import-inner{width:100%;max-width:700px}
+    .import-inner h2{
+      color:#2c3e50;
+      text-align:center;
+      margin:0 0 20px;
+      font-size:20px;
+    }
+    .import-upload-area{
+      border:2px dashed #3498db;
+      border-radius:8px;
+      padding:36px;
+      text-align:center;
+      cursor:pointer;
+      transition:background-color .3s;
+      margin-bottom:20px;
+    }
+    .import-upload-area:hover{background-color:#ecf6fd}
+    .import-upload-icon{font-size:42px;color:#3498db;margin-bottom:8px}
+    .import-file-input{display:none}
+    .import-btn{
+      background-color:#3498db;
+      color:white;
+      border:none;
+      padding:10px 20px;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:16px;
+      transition:background-color .3s;
+    }
+    .import-btn:hover{background-color:#2980b9}
+    .import-btn:disabled{background-color:#bdc3c7;cursor:not-allowed}
+    .import-file-list{margin-top:24px}
+    .import-file-item{
+      background-color:#fff;
+      border:1px solid #e0e0e0;
+      border-radius:6px;
+      padding:15px;
+      margin-bottom:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .import-file-info{
+      display:flex;
+      flex-direction:column;
+      flex:1;
+      margin-right:20px;
+    }
+    .import-file-name{font-weight:600;color:#333}
+    .import-file-size{font-size:12px;color:#7f8c8d;margin-top:4px}
+    .import-status-badge{
+      padding:5px 10px;
+      border-radius:15px;
+      font-size:12px;
+      font-weight:bold;
+      color:white;
+      min-width:80px;
+      text-align:center;
+    }
+    .import-status-uploading{background-color:#f39c12}
+    .import-status-processing{background-color:#3498db}
+    .import-status-completed{background-color:#2ecc71}
+    .import-status-error{background-color:#e74c3c}
+    .import-progress-bar-container{
+      width:100%;
+      height:4px;
+      background-color:#f0f0f0;
+      margin-top:8px;
+      border-radius:2px;
+      overflow:hidden;
+      display:none;
+    }
+    .import-progress-bar{
+      height:100%;
+      background-color:#f39c12;
+      width:0%;
+      transition:width .3s,background-color .3s;
+    }
+    .import-log-details{margin-top:8px;font-size:12px;color:#7f8c8d}
+    .import-log-details summary{cursor:pointer;user-select:none;color:#6c7a89}
+    .import-log-list{margin:6px 0 0 16px;padding:0}
+    .import-log-list li{margin:2px 0;line-height:1.4}
+
+    .file-table-wrapper{margin-top:24px;overflow-x:auto}
+    .file-table{width:100%;border-collapse:collapse;font-size:14px}
+    .file-table th{text-align:left;padding:10px 12px;border-bottom:2px solid #e0e0e0;color:#56657a;font-weight:600;white-space:nowrap}
+    .file-table td{padding:10px 12px;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+    .file-table tbody tr:hover{background:#f8fafe}
+    .file-btn-small{padding:5px 12px;border:none;border-radius:6px;cursor:pointer;font-size:12px;margin-right:4px}
+    .file-btn-delete{background:#fee;color:#e74c3c;border:1px solid #fcc}
+    .file-btn-delete:hover{background:#fdd}
+    .status-tag{padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600;color:#fff;display:inline-block}
+    .status-uploaded{background:#5b7cfa}
+    .status-processing{background:#f39c12}
+    .status-completed{background:#2ecc71}
+    .status-failed{background:#e74c3c}
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- 左侧导航 -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div class="logo-text">
+        <strong>KAAS</strong>
+        <span>知识库管理平台</span>
+      </div>
+    </div>
+    <div class="nav-menu">
+      <button class="nav-item active" data-panel="chat" onclick="switchPanel('chat')">
+        <span class="nav-icon">💬</span> 智能问答
+      </button>
+      <button class="nav-item" data-panel="kb" onclick="switchPanel('kb')">
+        <span class="nav-icon">📚</span> 知识库管理
+      </button>
+      <button class="nav-item" data-panel="eval" onclick="switchPanel('eval')">
+        <span class="nav-icon">📊</span> 检索评估
+      </button>
+    </div>
+  </nav>
+
+  <!-- 右侧内容区 -->
+  <div class="main-area">
+
+    <!-- ===== 智能问答面板 ===== -->
+    <div class="panel active" id="panel-chat">
+      <div class="topbar">
+        <div class="brand"><strong>智能问答</strong></div>
+        <select id="chatKbSelect" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);margin-right:12px;font-size:13px;"></select>
+        <div class="top-actions">
+          <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;color:var(--muted);margin-right:10px;">
+            <input type="checkbox" id="streamToggle" checked> 流式输出
+          </label>
+          <span class="pill" id="apiPill">API: 未连接</span>
+          <button class="btn" id="btnClear">清空对话</button>
+        </div>
+      </div>
+      <div class="chat" id="chat">
+        <div class="dayline">今天</div>
+        <div class="msg bot">
+          <div class="avatar bot">KAAS</div>
+          <div>
+            <div class="bubble">你好，我是 KAAS 知识库客服。你可以直接提问，我会在"阶段进度"里展示处理过程。</div>
+            <div class="meta">提示：可以问"如何使用万用表测量电压？"</div>
+          </div>
+        </div>
+      </div>
+      <div class="composer">
+        <textarea id="input" placeholder="请输入问题（Enter 发送，Shift+Enter 换行）"></textarea>
+        <button class="send" id="send">发送</button>
+      </div>
+      <div class="hint">快捷键：<span class="kbd">Enter</span> 发送，<span class="kbd">Shift</span>+<span class="kbd">Enter</span> 换行</div>
+    </div>
+
+    <!-- ===== 知识库管理面板 ===== -->
+    <div class="panel" id="panel-kb">
+      <div class="import-container">
+        <div class="import-inner">
+          <!-- KB 列表视图 -->
+          <div id="kbListView">
+            <h2>📚 知识库管理</h2>
+            <div style="margin-bottom:16px;">
+              <button class="import-btn" id="btnCreateKb" style="margin-right:8px;">+ 新建知识库</button>
+            </div>
+            <div class="file-table-wrapper">
+              <table class="file-table">
+                <thead>
+                  <tr><th>名称</th><th>描述</th><th>文档数</th><th>创建时间</th><th>操作</th></tr>
+                </thead>
+                <tbody id="kbTableBody">
+                  <tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">暂无知识库</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <!-- KB 文件详情视图（默认隐藏） -->
+          <div id="kbDetailView" style="display:none;">
+            <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+              <button onclick="backToKbList()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:14px;">← 返回</button>
+              <h2 id="kbDetailTitle" style="margin:0;">📄 文件管理</h2>
+            </div>
+            <div class="import-upload-area" id="dropZone" onclick="document.getElementById('fileInput').click()">
+              <div class="import-upload-icon">☁️</div>
+              <p>点击或拖拽文件上传 (PDF/MD)</p>
+              <input type="file" id="fileInput" class="import-file-input" multiple accept=".pdf,.md">
+            </div>
+            <div class="file-table-wrapper">
+              <table class="file-table">
+                <thead>
+                  <tr><th>文件名</th><th>大小</th><th>类型</th><th>状态</th><th>操作</th></tr>
+                </thead>
+                <tbody id="fileTableBody">
+                  <tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">暂无文件，请上传</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KB编辑弹窗 -->
+    <div id="kbEditModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:12px;padding:24px;width:560px;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <h3 id="kbEditTitle" style="margin:0 0 16px;">新建知识库</h3>
+        <form id="kbEditForm" onsubmit="return false;">
+          <input type="hidden" id="kbEditId">
+          <label style="font-size:13px;color:#56657a;">名称</label>
+          <input id="kbEditName" required style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);margin:4px 0 12px;">
+          <label style="font-size:13px;color:#56657a;">描述</label>
+          <textarea id="kbEditDesc" rows="2" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);margin:4px 0 12px;resize:vertical;"></textarea>
+
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;color:#1aa7ff;font-weight:600;">导入参数</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+              <div><label style="font-size:12px;">Chunk最大长度</label><input id="cfg_cml" type="number" value="2000" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">Chunk最小长度</label><input id="cfg_cmin" type="number" value="500" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+            </div>
+          </details>
+
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;color:#1aa7ff;font-weight:600;">实体匹配权重</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+              <div><label style="font-size:12px;">稠密权重</label><input id="cfg_em_dw" type="number" step="0.1" value="0.8" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">稀疏权重</label><input id="cfg_em_sw" type="number" step="0.1" value="0.2" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+            </div>
+          </details>
+
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;color:#1aa7ff;font-weight:600;">向量检索权重</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+              <div><label style="font-size:12px;">稠密权重</label><input id="cfg_es_dw" type="number" step="0.1" value="0.8" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">稀疏权重</label><input id="cfg_es_sw" type="number" step="0.1" value="0.2" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">候选召回数</label><input id="cfg_es_rl" type="number" value="10" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">单路返回TopK</label><input id="cfg_es_tk" type="number" value="5" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+            </div>
+          </details>
+
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;color:#1aa7ff;font-weight:600;">HyDE检索权重</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+              <div><label style="font-size:12px;">稠密权重</label><input id="cfg_hs_dw" type="number" step="0.1" value="0.8" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">稀疏权重</label><input id="cfg_hs_sw" type="number" step="0.1" value="0.2" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">候选召回数</label><input id="cfg_hs_rl" type="number" value="10" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">单路返回TopK</label><input id="cfg_hs_tk" type="number" value="5" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+            </div>
+          </details>
+
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;color:#1aa7ff;font-weight:600;">RRF & Rerank 参数</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+              <div><label style="font-size:12px;">RRF k值</label><input id="cfg_rrfk" type="number" value="60" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">融合后保留数</label><input id="cfg_rrfm" type="number" value="10" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">断崖相对阈值</label><input id="cfg_gr" type="number" step="0.05" value="0.25" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+              <div><label style="font-size:12px;">断崖绝对阈值</label><input id="cfg_ga" type="number" step="0.1" value="0.5" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--border);"></div>
+            </div>
+          </details>
+
+          <details style="margin-bottom:12px;">
+            <summary style="cursor:pointer;font-size:13px;color:#1aa7ff;font-weight:600;">功能开关</summary>
+            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:12px;">
+              <label style="font-size:12px;"><input type="checkbox" id="cfg_eh" checked> HyDE检索</label>
+              <label style="font-size:12px;"><input type="checkbox" id="cfg_ew" checked> 联网搜索</label>
+              <label style="font-size:12px;"><input type="checkbox" id="cfg_ek" checked> 知识图谱</label>
+              <label style="font-size:12px;"><input type="checkbox" id="cfg_eqr" checked> Query改写</label>
+            </div>
+          </details>
+
+          <div style="text-align:right;margin-top:16px;">
+            <button type="button" onclick="closeKbEdit()" style="padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;margin-right:8px;">取消</button>
+            <button onclick="saveKb()" style="padding:8px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;cursor:pointer;">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===== 检索评估面板 ===== -->
+    <div class="panel" id="panel-eval">
+      <div class="topbar">
+        <div class="brand"><strong>检索评估</strong></div>
+      </div>
+      <div class="eval-container" style="flex:1;overflow:auto;padding:20px;">
+
+        <!-- 区域1: 操作栏 -->
+        <div class="eval-toolbar" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
+          <span style="font-size:13px;color:#56657a;">知识库：</span>
+          <select id="evalKbSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);min-width:140px;"></select>
+          <select id="evalDatasetSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);min-width:180px;">
+            <option value="">-- 选择数据集 --</option>
+          </select>
+          <select id="evalModeSelect" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);">
+            <option value="retrieval">检索评估</option>
+            <option value="ragas">RAGAS 评估</option>
+          </select>
+          <button class="btn" id="btnAddParam" style="background:#5b7cfa;">+ 从KB配置添加参数组</button>
+          <button class="btn" id="btnRunEval">执行评估</button>
+        </div>
+
+        <!-- 参数组标签 -->
+        <div id="evalParamTags" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+          <span style="font-size:13px;color:#999;">尚未添加参数组</span>
+        </div>
+
+        <!-- 区域2: 结果展示 -->
+        <div id="evalResultArea" style="display:none;">
+          <h4 style="margin:16px 0 8px;">指标对比</h4>
+          <div style="overflow-x:auto;">
+            <table id="evalCompareTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+              <thead><tr></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <h4 style="margin:24px 0 8px;">分阶段 Recall</h4>
+          <canvas id="evalStageChart" width="600" height="300" style="max-width:100%;"></canvas>
+        </div>
+
+        <!-- 区域3: 数据集管理 -->
+        <h4 style="margin:24px 0 8px;">数据集管理</h4>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:4px;">
+          <input id="newDatasetName" placeholder="数据集名称" style="padding:8px;border-radius:8px;border:1px solid var(--border);">
+          <button class="btn" id="btnCreateDataset" style="background:#5b7cfa;">创建数据集</button>
+          <label class="btn" style="background:#5b7cfa;cursor:pointer;">导入文件
+            <input type="file" id="importFileInput" accept=".json,.csv" style="display:none;">
+          </label>
+          <button class="btn" id="btnOpenDocGen" style="background:#27ae60;">+ 从文档生成</button>
+        </div>
+        <details style="margin-bottom:12px;font-size:12px;color:var(--muted);">
+          <summary style="cursor:pointer;">导入文件格式说明</summary>
+          <div style="margin-top:6px;padding:10px;background:#f5f6f8;border-radius:8px;line-height:1.8;">
+            <strong>CSV 格式（推荐）:</strong><br>
+            <code style="background:#e9eef7;padding:2px 6px;border-radius:4px;">question,item_name,relevant_chunk_ids,expected_answer</code><br>
+            示例: <code style="background:#e9eef7;padding:2px 6px;border-radius:4px;">烫金机怎么操作,HAK180烫金机,"123,456",按照手册第3章操作</code><br><br>
+            <strong>JSON 格式:</strong><br>
+            <code style="background:#e9eef7;padding:2px 6px;border-radius:4px;">[{"question":"...","item_name":"...","relevant_chunk_ids":["123"],"expected_answer":"..."}]</code>
+          </div>
+        </details>
+        <table id="datasetsTable" style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr><th>名称</th><th>条目数</th><th>操作</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <!-- 数据集预览弹窗 -->
+        <div id="datasetPreviewModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:999;justify-content:center;align-items:center;">
+          <div style="background:#fff;border-radius:16px;max-width:900px;width:90%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);">
+              <strong id="previewTitle" style="font-size:16px;">数据集预览</strong>
+              <button onclick="closeDatasetPreview()" style="border:none;background:none;font-size:22px;cursor:pointer;color:var(--muted);">&times;</button>
+            </div>
+            <div style="overflow:auto;padding:16px 20px;flex:1;">
+              <div id="previewStats" style="margin-bottom:12px;font-size:13px;color:var(--muted);"></div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:#f5f6f8;"><th style="padding:8px;text-align:left;border:1px solid var(--border);">#</th><th style="padding:8px;text-align:left;border:1px solid var(--border);">问题</th><th style="padding:8px;text-align:left;border:1px solid var(--border);">商品名</th><th style="padding:8px;text-align:left;border:1px solid var(--border);">相关Chunk ID</th></tr></thead>
+                <tbody id="previewItemsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 从文档生成数据集弹窗 -->
+        <div id="docGenModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.4);z-index:999;justify-content:center;align-items:center;">
+          <div style="background:#fff;border-radius:16px;max-width:1100px;width:95%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid var(--border);">
+              <strong style="font-size:16px;">从文档生成数据集</strong>
+              <button onclick="closeDocGen()" style="border:none;background:none;font-size:22px;cursor:pointer;color:var(--muted);">&times;</button>
+            </div>
+            <!-- 步骤1: 选文件 -->
+            <div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:13px;">知识库:</span>
+              <select id="docGenKbSelect" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);min-width:140px;" onchange="loadDocGenFiles()"></select>
+              <span style="font-size:13px;">文件:</span>
+              <select id="docGenFileSelect" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);min-width:200px;"></select>
+              <button class="btn" style="background:#5b7cfa;padding:6px 14px;" onclick="loadDocGenChunks()">加载切片</button>
+              <span id="docGenChunkCount" style="font-size:12px;color:var(--muted);"></span>
+            </div>
+            <!-- 主体: 左切片列表 + 右表单 -->
+            <div style="display:flex;flex:1;overflow:hidden;">
+              <!-- 左: 切片列表 -->
+              <div style="width:420px;min-width:280px;border-right:1px solid var(--border);overflow:auto;padding:10px;font-size:12px;" id="docGenChunkList">
+                <div style="color:#999;text-align:center;padding:40px 0;">请先选择文件并点击「加载切片」</div>
+              </div>
+              <!-- 右: 表单+条目列表 -->
+              <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+                <div style="padding:10px 14px;border-bottom:1px solid var(--border);">
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input id="docGenQuestion" placeholder="输入测试问题..." style="flex:1;min-width:200px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;">
+                    <input id="docGenItemName" placeholder="商品名(可选)" style="width:140px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;">
+                    <button class="btn" style="padding:8px 16px;" onclick="addDocGenItem()">添加条目</button>
+                  </div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px;">勾选左侧切片后输入问题，点击「添加条目」即可生成测试数据</div>
+                </div>
+                <div style="flex:1;overflow:auto;padding:10px 14px;" id="docGenItemList">
+                  <div style="color:#999;text-align:center;padding:20px 0;">尚未添加条目</div>
+                </div>
+                <!-- 底部操作 -->
+                <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+                  <span style="font-size:13px;">保存到:</span>
+                  <select id="docGenSaveDataset" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);flex:1;min-width:160px;">
+                    <option value="">-- 选择或新建数据集 --</option>
+                  </select>
+                  <input id="docGenNewDsName" placeholder="新数据集名" style="width:130px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);font-size:12px;">
+                  <button class="btn" style="background:#27ae60;padding:8px 16px;" onclick="saveDocGenItems()">保存</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== 面板切换 =====
+function switchPanel(name) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`[data-panel="${name}"]`).classList.add('active');
+  document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  if (name === 'chat') {
+    setTimeout(() => document.getElementById('input').focus(), 100);
+  }
+  if (name === 'kb') {
+    loadKbList();
+  }
+  if (name === 'eval') {
+    loadDatasets();
+  }
+}
+
+// ===== 共用工具函数 =====
+function escapeHtml(str){
+  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;");
+}
+
+// ===== 共用 API_BASE =====
+const API_BASE = `${location.protocol}//${location.host}`.includes('http')
+  ? `${location.protocol}//${location.host}`
+  : 'http://127.0.0.1:8000';
+
+// ===== 智能问答 JS =====
+(function(){
+  const chatEl = document.getElementById('chat');
+  const inputEl = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+  const apiPill = document.getElementById('apiPill');
+  const btnClear = document.getElementById('btnClear');
+  const streamToggle = document.getElementById('streamToggle');
+
+  let sessionId = localStorage.getItem('kb_session_id');
+  if (!sessionId) {
+    sessionId = 'sess-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('kb_session_id', sessionId);
+  }
+
+  function scrollToBottom(){ chatEl.scrollTop = chatEl.scrollHeight; }
+  function nowTime(){
+    const d = new Date();
+    return d.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+  }
+  function formatTime(ts){
+    if(!ts) return nowTime();
+    const d = new Date(Number(ts) * 1000);
+    if(Number.isNaN(d.getTime())) return nowTime();
+    return d.toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit'});
+  }
+  function isImageUrl(url){
+    try { const u = new URL(url); return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(u.pathname); }
+    catch(e){ return /\.(png|jpe?g|gif|webp|bmp|svg)(\?|#|$)/i.test(url||''); }
+  }
+  function normalizeUrl(rawUrl){
+    const s = String(rawUrl||'').trim();
+    if(!s) return '';
+    return s.replace(/\s/g, '%20');
+  }
+  function dedupeKeepOrder(arr){
+    const seen = new Set(), out = [];
+    for(const x of (Array.isArray(arr)?arr:[])){
+      const v = String(x||''); if(!v||seen.has(v)) continue; seen.add(v); out.push(v);
+    }
+    return out;
+  }
+  function extractUrlsLoose(text){
+    const s = String(text||'');
+    const regex = /(https?:\/\/[^\s]+)/g;
+    const matches = s.match(regex) || [];
+    const trimTailPunct = (u) => String(u||'').replace(/[)\]}'">，。,;；\]】）＞]+$/g, '');
+    const trimHeadPunct = (u) => String(u||'').replace(/^[<([{'"]+|^[＜（【\[]+/g, '');
+    const urls = [];
+    for(const m of matches){ let u = trimHeadPunct(trimTailPunct(m)); if(u) urls.push(u); }
+    return dedupeKeepOrder(urls);
+  }
+  function parseImagesFromTextLoosely(text){
+    return dedupeKeepOrder(extractUrlsLoose(text).filter(isImageUrl));
+  }
+  function findLastImageMarkerIndex(raw){
+    const s = String(raw||'');
+    const re = /【\s*图片\s*】|\[\s*图片\s*\]/g;
+    let m, lastIdx=-1, lastLen=0;
+    while((m=re.exec(s))!==null){ lastIdx=m.index; lastLen=m[0].length; }
+    return {idx:lastIdx, len:lastLen};
+  }
+  function parseAnswerAndImages(text){
+    const raw = String(text||'');
+    const {idx,len} = findLastImageMarkerIndex(raw);
+    if(idx===-1) return {text:raw, images:[]};
+    const before = raw.slice(0,idx).trimEnd();
+    const after = raw.slice(idx+len).trim();
+    const urls = [];
+    const lines = after.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    for(const line of lines){
+      if(line.startsWith('http://')||line.startsWith('https://')){ urls.push(line); }
+      else { for(const u of extractUrlsLoose(line)) urls.push(u); }
+    }
+    const seen = new Set(); const images = [];
+    for(const u of urls){ const n=normalizeUrl(u); if(!isImageUrl(n)||seen.has(n)) continue; seen.add(n); images.push(n); }
+    return {text:before, images};
+  }
+  function renderAnswerWithImages(containerEl, answerText, candidateImageUrls){
+    const {text, images:imagesFromBlock} = parseAnswerAndImages(answerText);
+    const candidates = Array.isArray(candidateImageUrls)?candidateImageUrls.map(normalizeUrl).filter(isImageUrl):[];
+    const looseImages = extractUrlsLoose(answerText).map(normalizeUrl).filter(isImageUrl);
+    const allImages = new Set([...(imagesFromBlock||[]), ...candidates, ...looseImages]);
+    const images = Array.from(allImages);
+    containerEl.textContent = '';
+    const textEl = document.createElement('div');
+    textEl.className = 'answer-text';
+    textEl.textContent = (text||'').trim()||'（已完成，但未返回答案）';
+    containerEl.appendChild(textEl);
+    if(images&&images.length>0){
+      const imgWrap = document.createElement('div'); imgWrap.className='answer-images';
+      for(const url of images){
+        const safeUrl = normalizeUrl(url);
+        const img = document.createElement('img'); img.loading='lazy'; img.src=safeUrl; img.alt='参考图片'; img.referrerPolicy='no-referrer';
+        img.addEventListener('error',()=>{img.style.display='none'});
+        imgWrap.appendChild(img);
+        const link = document.createElement('a'); link.href=safeUrl; link.target='_blank'; link.rel='noopener noreferrer'; link.textContent=url;
+        imgWrap.appendChild(link);
+      }
+      containerEl.appendChild(imgWrap);
+    }
+  }
+  function addUserMsg(text){
+    chatEl.insertAdjacentHTML('beforeend',`<div class="msg user"><div><div class="bubble">${escapeHtml(text)}</div><div class="meta">${nowTime()}</div></div><div class="avatar">我</div></div>`);
+    scrollToBottom();
+  }
+  function addUserMsgWithTime(text, ts){
+    chatEl.insertAdjacentHTML('beforeend',`<div class="msg user"><div><div class="bubble">${escapeHtml(text)}</div><div class="meta">${formatTime(ts)}</div></div><div class="avatar">我</div></div>`);
+    scrollToBottom();
+  }
+  function addBotMsgWithTime(text, ts, imageUrls){
+    const id='bot-his-'+Math.random().toString(36).slice(2);
+    chatEl.insertAdjacentHTML('beforeend',`<div class="msg bot" id="${id}"><div class="avatar bot">KAAS</div><div><div class="bubble"><div class="answer"></div></div><div class="meta">${formatTime(ts)}</div></div></div>`);
+    const el=document.getElementById(id);
+    if(el) renderAnswerWithImages(el.querySelector('.answer'),text||'',imageUrls||[]);
+    scrollToBottom();
+  }
+  function addBotMsgSkeleton(){
+    const id='bot-'+Math.random().toString(36).slice(2);
+    chatEl.insertAdjacentHTML('beforeend',`<div class="msg bot" id="${id}"><div class="avatar bot">KAAS</div><div style="min-width:180px"><div class="bubble"><span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span><details class="progress" open><summary>阶段进度（等待中）</summary><ul></ul></details></div><div class="meta">${nowTime()}</div></div></div>`);
+    scrollToBottom();
+    return document.getElementById(id);
+  }
+  function renderProgress(botMsgEl, doneList, runningList, status){
+    const details=botMsgEl.querySelector('details.progress');
+    const summary=details.querySelector('summary'), ul=details.querySelector('ul');
+    const done=Array.isArray(doneList)?doneList:[], running=Array.isArray(runningList)?runningList:[];
+    const statusMap={processing:'处理中',completed:'已完成',failed:'失败',pending:'等待中'};
+    summary.textContent=`阶段进度（已完成${done.length}，进行中${running.length}，状态：${statusMap[status]||status||'unknown'}）`;
+    const lines=[...done.map(x=>'✅ '+x),...running.map(x=>'⏳ '+x)];
+    ul.innerHTML='';
+    if(lines.length===0) ul.insertAdjacentHTML('beforeend','<li>暂无进度</li>');
+    else for(const line of lines) ul.insertAdjacentHTML('beforeend',`<li>${escapeHtml(line)}</li>`);
+  }
+  function finalizeBotAnswer(botMsgEl, answer, error, imageUrls){
+    const bubble=botMsgEl.querySelector('.bubble');
+    const progress=botMsgEl.querySelector('details.progress');
+    const err=(error||'').trim();
+    if(err){
+      if(progress){progress.remove();progress.removeAttribute('open')}
+      bubble.textContent='';
+      const errEl=document.createElement('div');errEl.className='answer';errEl.textContent='抱歉，本次处理失败：\n'+err;
+      bubble.appendChild(errEl);if(progress)bubble.appendChild(progress);
+      return;
+    }
+    if(progress){progress.remove();progress.removeAttribute('open')}
+    bubble.textContent='';
+    const answerEl=document.createElement('div');answerEl.className='answer';
+    bubble.appendChild(answerEl);
+    renderAnswerWithImages(answerEl,answer||'',imageUrls||[]);
+    if(progress)bubble.appendChild(progress);
+  }
+  function renderEntityOptions(botMsgEl, options){
+    /* 在 bot 消息气泡中渲染可点击的实体候选按钮 */
+    if(!Array.isArray(options)||options.length===0) return;
+    const bubble=botMsgEl.querySelector('.bubble');
+    // 移除已有的选项区域（避免重复渲染）
+    const existing=bubble.querySelector('.entity-options');
+    if(existing) existing.remove();
+    const wrap=document.createElement('div');
+    wrap.className='entity-options';
+    options.forEach(opt=>{
+      const btn=document.createElement('button');
+      btn.className='entity-option-btn';
+      btn.textContent=opt;
+      btn.addEventListener('click',()=>{
+        // 标记所有按钮为已选中
+        wrap.querySelectorAll('.entity-option-btn').forEach(b=>b.classList.add('selected'));
+        // 自动发送选中的实体名称
+        inputEl.value=opt;
+        onSend();
+      });
+      wrap.appendChild(btn);
+    });
+    bubble.appendChild(wrap);
+    scrollToBottom();
+  }
+  async function apiHealth(){
+    try{const res=await fetch(`${API_BASE}/health`);apiPill.textContent=res.ok?'API: 已连接':'API: 未连接'}catch(e){apiPill.textContent='API: 未连接'}
+  }
+  async function loadHistory(){
+    try{
+      const res=await fetch(`${API_BASE}/history/${sessionId}`);
+      if(!res.ok) return;
+      const data=await res.json();
+      const items=Array.isArray(data.items)?data.items:[];
+      if(items.length===0) return;
+      const nodes=Array.from(chatEl.querySelectorAll('.msg'));
+      for(let i=1;i<nodes.length;i++) nodes[i].remove();
+      for(const item of items){
+        if(item.role==='user') addUserMsgWithTime(item.text||'',item.ts);
+        else addBotMsgWithTime(item.text||'',item.ts,item.image_urls||[]);
+      }
+      scrollToBottom();
+    }catch(_){}
+  }
+  async function submitQuery(text){
+    const isStream=streamToggle.checked;
+    const res=await fetch(`${API_BASE}/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:text,session_id:sessionId,is_stream:isStream,kb_id:currentKbId})});
+    if(!res.ok){const msg=await res.text();throw new Error(msg||'请求失败')}
+    return await res.json();
+  }
+  async function onSend(){
+    const text=(inputEl.value||'').trim();
+    if(!text) return;
+    inputEl.value='';
+    addUserMsg(text);
+    const botMsgEl=addBotMsgSkeleton();
+    sendBtn.disabled=true;
+    try{
+      const isStream=streamToggle.checked;
+      const data=await submitQuery(text);
+      renderProgress(botMsgEl,[],[],'pending');
+      if(!isStream){
+        renderProgress(botMsgEl,data.done_list||[],[],'completed');
+        finalizeBotAnswer(botMsgEl,data.answer,data.error,data.image_urls||[]);
+        if(data.entity_options&&data.entity_options.length>0) renderEntityOptions(botMsgEl,data.entity_options);
+        sendBtn.disabled=false;
+        return;
+      }
+      const {session_id}=data;
+      const bubble=botMsgEl.querySelector('.bubble');
+      let answerEl=bubble.querySelector('.answer');
+      if(!answerEl){answerEl=document.createElement('div');answerEl.className='answer';bubble.insertBefore(answerEl,bubble.firstChild)}
+      const es=new EventSource(`${API_BASE}/stream/${session_id}`);
+      let rawAnswerText='';
+      es.addEventListener('progress',(e)=>{
+        try{const d=JSON.parse(e.data||'{}');renderProgress(botMsgEl,d.done_list,d.running_list,d.status);
+        if(d&&d.status==='completed'){const t=botMsgEl.querySelector('.typing');if(t)t.remove();sendBtn.disabled=false}}catch(_){}
+      });
+      es.addEventListener('delta',(e)=>{
+        try{const d=JSON.parse(e.data||'{}');const delta=d.delta||'';if(delta){rawAnswerText+=delta;renderAnswerWithImages(answerEl,rawAnswerText,[]);scrollToBottom()}
+        if(d.entity_options&&d.entity_options.length>0) renderEntityOptions(botMsgEl,d.entity_options)}catch(_){}
+      });
+      es.addEventListener('final',(e)=>{
+        const t=botMsgEl.querySelector('.typing');if(t)t.remove();
+        const p=botMsgEl.querySelector('details.progress');if(p)p.removeAttribute('open');
+        try{const d=JSON.parse(e.data||'{}');const ft=(d&&typeof d.answer==='string'&&d.answer.trim().length>0)?d.answer:(rawAnswerText||answerEl.textContent||'');renderAnswerWithImages(answerEl,ft,d.image_urls||[]);
+        if(d.entity_options&&d.entity_options.length>0) renderEntityOptions(botMsgEl,d.entity_options)}catch(_){}
+        es.close();sendBtn.disabled=false;
+      });
+      es.addEventListener('final_answer',(e)=>{
+        const t=botMsgEl.querySelector('.typing');if(t)t.remove();
+        const p=botMsgEl.querySelector('details.progress');if(p)p.removeAttribute('open');
+        try{const d=JSON.parse(e.data||'{}');const ft=(d&&typeof d.answer==='string'&&d.answer.trim().length>0)?d.answer:(rawAnswerText||answerEl.textContent||'');renderAnswerWithImages(answerEl,ft,d.image_urls||[])}catch(_){}
+        es.close();sendBtn.disabled=false;
+      });
+      es.addEventListener('error',(e)=>{
+        const t=botMsgEl.querySelector('.typing');if(t)t.remove();
+        const p=botMsgEl.querySelector('details.progress');if(p)p.removeAttribute('open');
+        try{const msg=e&&e.data?(JSON.parse(e.data).error||'SSE 连接中断/失败'):'SSE 连接中断/失败';rawAnswerText+='\n\n（错误：'+msg+'）';renderAnswerWithImages(answerEl,rawAnswerText,[])}catch(_){rawAnswerText+='\n\n（错误：SSE 连接中断/失败）';renderAnswerWithImages(answerEl,rawAnswerText,[])}
+        es.close();sendBtn.disabled=false;
+      });
+    }catch(e){
+      const bubble=botMsgEl.querySelector('.bubble');
+      const progress=botMsgEl.querySelector('details.progress');
+      const typing=botMsgEl.querySelector('.typing');if(typing)typing.remove();
+      bubble.innerHTML='请求失败：'+escapeHtml(e.message||e)+'\n\n'+progress.outerHTML;
+      sendBtn.disabled=false;
+    }
+  }
+  sendBtn.addEventListener('click',onSend);
+  inputEl.addEventListener('keydown',(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();onSend()}});
+  btnClear.addEventListener('click',async()=>{
+    if(!confirm('确定要清空当前会话的历史记录吗？这将无法恢复。')) return;
+    try{await fetch(`${API_BASE}/history/${sessionId}`,{method:'DELETE'})}catch(e){console.error(e)}
+    const nodes=Array.from(chatEl.querySelectorAll('.msg'));
+    for(let i=1;i<nodes.length;i++) nodes[i].remove();
+    scrollToBottom();
+  });
+  apiHealth();setInterval(apiHealth,5000);loadHistory();setTimeout(()=>inputEl.focus(),200);
+})();
+
+// ===== 文件管理 JS（全局函数，在 KB 详情视图中使用） =====
+let currentKbId = 1;  // 当前选中的知识库
+let kbDetailKbId = null;  // KB 详情视图中正在查看的知识库 ID
+
+function formatSize(bytes){
+  if(bytes<1024) return bytes+' B';
+  if(bytes<1024*1024) return (bytes/1024).toFixed(1)+' KB';
+  return (bytes/(1024*1024)).toFixed(1)+' MB';
+}
+
+function statusLabel(status){
+  const map={uploaded:'已上传',processing:'处理中',completed:'已完成',failed:'失败'};
+  return map[status]||status;
+}
+
+function statusClass(status){
+  return 'status-'+status;
+}
+
+function renderFileRow(record){
+  const tbody = document.getElementById('fileTableBody');
+  const row = document.createElement('tr');
+  row.id = 'file-row-'+record.id;
+  row.innerHTML = `
+    <td><strong>${escapeHtml(record.file_name)}</strong></td>
+    <td>${formatSize(record.file_size)}</td>
+    <td>${record.file_type.toUpperCase()}</td>
+    <td><span class="status-tag ${statusClass(record.embedding_status)}">${statusLabel(record.embedding_status)}</span></td>
+    <td><button class="file-btn-small file-btn-delete" onclick="deleteFileRecord(${record.id})">删除</button></td>
+  `;
+  tbody.appendChild(row);
+}
+
+async function loadFileList(kbId){
+  if (!kbId) kbId = kbDetailKbId || currentKbId;
+  try{
+    const res = await fetch(`${API_BASE}/files?kb_id=${kbId}`);
+    const data = await res.json();
+    const tbody = document.getElementById('fileTableBody');
+    tbody.innerHTML = '';
+    if (!data.data || data.data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">暂无文件，请上传</td></tr>';
+      return;
+    }
+    data.data.forEach(renderFileRow);
+  } catch(e) {
+    console.error('加载文件列表失败', e);
+  }
+}
+
+async function uploadFile(file){
+  const kbId = kbDetailKbId || currentKbId;
+  const formData = new FormData();
+  formData.append('files', file);
+  formData.append('kb_id', kbId);
+  try{
+    const response = await fetch(`${API_BASE}/upload`, {method:'POST', body:formData});
+    const data = await response.json();
+    if (data.code === 409) {
+      const existing = data.existing;
+      const overwrite = confirm(
+        `文件 "${file.name}" 已存在！\n\n`+
+        `已存在文件: ${existing.file_name}\n`+
+        `上传时间: ${existing.created_at}\n\n`+
+        `点击"确定"覆盖旧文件（将删除旧文件的向量数据和MinIO文件）\n`+
+        `点击"取消"跳过上传`
+      );
+      if (overwrite) { await overwriteUpload(file, existing.task_id); }
+      return;
+    }
+    if (!response.ok && data.code !== 200) throw new Error(data.message||'Upload failed');
+    loadFileList();
+    pollForUpdates();
+  } catch(e) {
+    console.error('上传失败', e);
+    alert('文件上传失败: ' + e.message);
+  }
+}
+
+async function overwriteUpload(file, oldTaskId){
+  const kbId = kbDetailKbId || currentKbId;
+  const formData = new FormData();
+  formData.append('old_task_id', oldTaskId);
+  formData.append('file', file);
+  formData.append('kb_id', kbId);
+  try{
+    const response = await fetch(`${API_BASE}/upload/overwrite`, {method:'POST', body:formData});
+    const data = await response.json();
+    if (data.code === 200) {
+      alert('覆盖上传成功，文件正在重新导入...');
+      loadFileList();
+      pollForUpdates();
+    } else {
+      alert('覆盖上传失败: ' + (data.message||'未知错误'));
+    }
+  } catch(e) {
+    console.error('覆盖上传失败', e);
+    alert('覆盖上传失败: ' + e.message);
+  }
+}
+
+function pollForUpdates(){
+  setTimeout(async () => {
+    try{
+      const kbId = kbDetailKbId || currentKbId;
+      const res = await fetch(`${API_BASE}/files?kb_id=${kbId}`);
+      const data = await res.json();
+      const hasProcessing = data.data.some(r => r.embedding_status === 'processing' || r.embedding_status === 'uploaded');
+      loadFileList();
+      if (hasProcessing) pollForUpdates();
+    } catch(e) {}
+  }, 3000);
+}
+
+// 全局删除函数
+window.deleteFileRecord = async function(fileId){
+  if (!confirm('确定要删除该文件吗？将同时删除 MinIO 文件和向量数据。')) return;
+  try{
+    const res = await fetch(`${API_BASE}/files/${fileId}`, {method:'DELETE'});
+    const data = await res.json();
+    if (data.code === 200) {
+      loadFileList();
+    } else {
+      alert('删除失败: ' + data.message);
+    }
+  } catch(e) {
+    console.error('删除失败', e);
+    alert('删除失败');
+  }
+};
+
+// 拖拽上传初始化
+(function(){
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  if (dropZone && fileInput) {
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.backgroundColor = '#ecf6fd'; });
+    dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.style.backgroundColor = ''; });
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.style.backgroundColor = ''; handleFiles(e.dataTransfer.files); });
+    fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); });
+  }
+  function handleFiles(files) { Array.from(files).forEach(uploadFile); }
+})();
+
+// ===== 知识库管理 JS =====
+
+async function loadKbSelects() {
+  try {
+    const res = await fetch(`${API_BASE}/api/kb`);
+    const data = await res.json();
+    const kbs = data.data || [];
+    const options = kbs.map(k => `<option value="${k.id}">${escapeHtml(k.name)}</option>`).join('');
+    document.getElementById('chatKbSelect').innerHTML = options;
+    if (kbs.length > 0) {
+      currentKbId = kbs[0].id;
+      document.getElementById('chatKbSelect').value = currentKbId;
+    }
+  } catch(e) { console.error('加载知识库列表失败', e); }
+}
+
+document.getElementById('chatKbSelect').addEventListener('change', function() {
+  currentKbId = parseInt(this.value);
+});
+
+  async function loadKbList() {
+    try {
+      const res = await fetch(`${API_BASE}/api/kb`);
+      const data = await res.json();
+      const tbody = document.getElementById('kbTableBody');
+      if (!data.data || data.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px;">暂无知识库</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.data.map(k => `
+        <tr>
+          <td><strong>${escapeHtml(k.name)}</strong></td>
+          <td>${escapeHtml(k.description || '')}</td>
+          <td>${k.doc_count}</td>
+          <td>${(k.created_at || '').substring(0,10)}</td>
+          <td>
+            <button class="file-btn-small" style="background:#e0f0e7;color:#2e7d52;border:1px solid #b0d8c0;" onclick="enterKb(${k.id}, '${escapeHtml(k.name).replace(/'/g, "\\'")}')">进入</button>
+            <button class="file-btn-small" style="background:#e9eef7;color:#5b7cfa;border:1px solid #c5d0e6;" onclick="editKb(${k.id})">编辑</button>
+            <button class="file-btn-small file-btn-delete" onclick="deleteKb(${k.id})">删除</button>
+          </td>
+        </tr>
+      `).join('');
+    } catch(e) { console.error('加载知识库列表失败', e); }
+  }
+
+  document.getElementById('btnCreateKb').onclick = function() {
+    document.getElementById('kbEditId').value = '';
+    document.getElementById('kbEditTitle').textContent = '新建知识库';
+    document.getElementById('kbEditName').value = '';
+    document.getElementById('kbEditDesc').value = '';
+    resetKbEditForm();
+    document.getElementById('kbEditModal').style.display = 'flex';
+  };
+
+  function resetKbEditForm() {
+    document.getElementById('cfg_cml').value = 2000;
+    document.getElementById('cfg_cmin').value = 500;
+    document.getElementById('cfg_em_dw').value = 0.8;
+    document.getElementById('cfg_em_sw').value = 0.2;
+    document.getElementById('cfg_es_dw').value = 0.8;
+    document.getElementById('cfg_es_sw').value = 0.2;
+    document.getElementById('cfg_es_rl').value = 10;
+    document.getElementById('cfg_es_tk').value = 5;
+    document.getElementById('cfg_hs_dw').value = 0.8;
+    document.getElementById('cfg_hs_sw').value = 0.2;
+    document.getElementById('cfg_hs_rl').value = 10;
+    document.getElementById('cfg_hs_tk').value = 5;
+    document.getElementById('cfg_rrfk').value = 60;
+    document.getElementById('cfg_rrfm').value = 10;
+    document.getElementById('cfg_gr').value = 0.25;
+    document.getElementById('cfg_ga').value = 0.5;
+    document.getElementById('cfg_eh').checked = true;
+    document.getElementById('cfg_ew').checked = true;
+    document.getElementById('cfg_ek').checked = true;
+    document.getElementById('cfg_eqr').checked = true;
+  }
+
+  function buildConfigFromForm() {
+    return {
+      import: {
+        chunk_max_length: parseInt(document.getElementById('cfg_cml').value) || 2000,
+        chunk_min_length: parseInt(document.getElementById('cfg_cmin').value) || 500
+      },
+      entity_match: {
+        dense_weight: parseFloat(document.getElementById('cfg_em_dw').value) || 0.8,
+        sparse_weight: parseFloat(document.getElementById('cfg_em_sw').value) || 0.2
+      },
+      embedding_search: {
+        dense_weight: parseFloat(document.getElementById('cfg_es_dw').value) || 0.8,
+        sparse_weight: parseFloat(document.getElementById('cfg_es_sw').value) || 0.2,
+        req_limit: parseInt(document.getElementById('cfg_es_rl').value) || 10,
+        top_k: parseInt(document.getElementById('cfg_es_tk').value) || 5
+      },
+      hyde_search: {
+        dense_weight: parseFloat(document.getElementById('cfg_hs_dw').value) || 0.8,
+        sparse_weight: parseFloat(document.getElementById('cfg_hs_sw').value) || 0.2,
+        req_limit: parseInt(document.getElementById('cfg_hs_rl').value) || 10,
+        top_k: parseInt(document.getElementById('cfg_hs_tk').value) || 5
+      },
+      rrf: {
+        k: parseInt(document.getElementById('cfg_rrfk').value) || 60,
+        max_results: parseInt(document.getElementById('cfg_rrfm').value) || 10
+      },
+      rerank: {
+        gap_ratio: parseFloat(document.getElementById('cfg_gr').value) || 0.25,
+        gap_abs: parseFloat(document.getElementById('cfg_ga').value) || 0.5
+      },
+      features: {
+        enable_hyde: document.getElementById('cfg_eh').checked,
+        enable_web_search: document.getElementById('cfg_ew').checked,
+        enable_kg_search: document.getElementById('cfg_ek').checked,
+        enable_query_rewrite: document.getElementById('cfg_eqr').checked
+      }
+    };
+  }
+
+  function fillFormFromConfig(config) {
+    if (!config) return;
+    var imp = config.import || {};
+    var em = config.entity_match || {};
+    var es = config.embedding_search || {};
+    var hs = config.hyde_search || {};
+    var rrf = config.rrf || {};
+    var rr = config.rerank || {};
+    var feat = config.features || {};
+    document.getElementById('cfg_cml').value = imp.chunk_max_length || 2000;
+    document.getElementById('cfg_cmin').value = imp.chunk_min_length || 500;
+    document.getElementById('cfg_em_dw').value = em.dense_weight || 0.8;
+    document.getElementById('cfg_em_sw').value = em.sparse_weight || 0.2;
+    document.getElementById('cfg_es_dw').value = es.dense_weight || 0.8;
+    document.getElementById('cfg_es_sw').value = es.sparse_weight || 0.2;
+    document.getElementById('cfg_es_rl').value = es.req_limit || 10;
+    document.getElementById('cfg_es_tk').value = es.top_k || 5;
+    document.getElementById('cfg_hs_dw').value = hs.dense_weight || 0.8;
+    document.getElementById('cfg_hs_sw').value = hs.sparse_weight || 0.2;
+    document.getElementById('cfg_hs_rl').value = hs.req_limit || 10;
+    document.getElementById('cfg_hs_tk').value = hs.top_k || 5;
+    document.getElementById('cfg_rrfk').value = rrf.k || 60;
+    document.getElementById('cfg_rrfm').value = rrf.max_results || 10;
+    document.getElementById('cfg_gr').value = rr.gap_ratio || 0.25;
+    document.getElementById('cfg_ga').value = rr.gap_abs || 0.5;
+    document.getElementById('cfg_eh').checked = feat.enable_hyde !== false;
+    document.getElementById('cfg_ew').checked = feat.enable_web_search !== false;
+    document.getElementById('cfg_ek').checked = feat.enable_kg_search !== false;
+    document.getElementById('cfg_eqr').checked = feat.enable_query_rewrite !== false;
+  }
+
+  async function editKb(kbId) {
+    try {
+      const res = await fetch(`${API_BASE}/api/kb/${kbId}`);
+      const data = await res.json();
+      const kb = data.data;
+      document.getElementById('kbEditId').value = kb.id;
+      document.getElementById('kbEditTitle').textContent = '编辑知识库';
+      document.getElementById('kbEditName').value = kb.name;
+      document.getElementById('kbEditDesc').value = kb.description || '';
+      document.getElementById('kbEditModal').style.display = 'flex';
+      // 加载配置到表单
+      try {
+        const cfgRes = await fetch(`${API_BASE}/api/kb/${kbId}/config`);
+        const cfgData = await cfgRes.json();
+        fillFormFromConfig(cfgData.data);
+      } catch(e) { resetKbEditForm(); }
+    } catch(e) { alert('获取知识库信息失败: ' + e.message); }
+  }
+
+  async function saveKb() {
+    var name = document.getElementById('kbEditName').value.trim();
+    if (!name) { alert('请输入知识库名称'); return; }
+    var config = buildConfigFromForm();
+    var kbId = document.getElementById('kbEditId').value;
+    var url, method, body;
+    if (kbId) {
+      url = `${API_BASE}/api/kb/${kbId}`;
+      method = 'PUT';
+      body = JSON.stringify({ name: name, description: document.getElementById('kbEditDesc').value.trim(), config: config });
+    } else {
+      url = `${API_BASE}/api/kb`;
+      method = 'POST';
+      body = JSON.stringify({ name: name, description: document.getElementById('kbEditDesc').value.trim(), config: config });
+    }
+    try {
+      const res = await fetch(url, { method: method, headers: {'Content-Type':'application/json'}, body: body });
+      const data = await res.json();
+      if (res.ok && (data.code === 200 || data.code === 201)) {
+        closeKbEdit();
+        loadKbList();
+        loadKbSelects();
+      } else {
+        alert(data.detail || data.message || '操作失败');
+      }
+    } catch(e) { alert('保存失败: ' + e.message); }
+  }
+
+  function closeKbEdit() {
+    document.getElementById('kbEditModal').style.display = 'none';
+  }
+
+  function enterKb(kbId, kbName) {
+    kbDetailKbId = kbId;
+    document.getElementById('kbListView').style.display = 'none';
+    document.getElementById('kbDetailView').style.display = 'block';
+    document.getElementById('kbDetailTitle').textContent = '📄 ' + kbName + ' — 文件管理';
+    loadFileList(kbId);
+    pollForUpdates();
+  }
+
+  function backToKbList() {
+    kbDetailKbId = null;
+    document.getElementById('kbDetailView').style.display = 'none';
+    document.getElementById('kbListView').style.display = 'block';
+    loadKbList();
+  }
+
+  async function deleteKb(kbId) {
+    if (!confirm('确定要删除该知识库吗？')) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/kb/${kbId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok && data.code === 200) {
+        loadKbList();
+        loadKbSelects();
+      } else {
+        alert(data.detail || data.message || '删除失败');
+      }
+    } catch(e) { alert('删除失败: ' + e.message); }
+  }
+
+  // 页面初始化：加载 KB 下拉框
+  loadKbSelects();
+
+  // ===== 检索评估 JS =====
+  let evalParamGroups = [];
+
+  // 加载 KB 下拉框到评估面板
+  async function loadEvalKbSelect() {
+    try {
+      const res = await fetch(`${API_BASE}/api/kb`);
+      const data = await res.json();
+      const kbs = data.data || [];
+      document.getElementById('evalKbSelect').innerHTML =
+        kbs.map(k => `<option value="${k.id}">${escapeHtml(k.name)}</option>`).join('');
+    } catch(e) { console.error('加载评估KB列表失败', e); }
+  }
+
+  // 数据集管理
+  async function loadDatasets() {
+    const res = await fetch('/eval/datasets');
+    const data = await res.json();
+    const sel = document.getElementById('evalDatasetSelect');
+    sel.innerHTML = '<option value="">-- 选择数据集 --</option>' +
+      data.items.map(d => `<option value="${d.dataset_id}">${d.name} (${d.query_count})</option>`).join('');
+    const tbody = document.querySelector('#datasetsTable tbody');
+    tbody.innerHTML = data.items.map(d => `
+      <tr>
+        <td>${d.name}</td>
+        <td>${d.query_count}</td>
+        <td>
+          <button onclick="selectDataset('${d.dataset_id}')">选择</button>
+          <button onclick="previewDataset('${d.dataset_id}')">预览</button>
+          <button onclick="deleteDataset('${d.dataset_id}')">删除</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function selectDataset(id) {
+    document.getElementById('evalDatasetSelect').value = id;
+  }
+
+  async function previewDataset(id) {
+    const res = await fetch('/eval/datasets/' + id);
+    const data = await res.json();
+    const items = data.items || [];
+    document.getElementById('previewTitle').textContent = '数据集: ' + (data.name || id);
+    document.getElementById('previewStats').textContent =
+      `共 ${items.length} 条测试条目 | 创建时间: ${data.created_at || '-'}`;
+    const tbody = document.getElementById('previewItemsBody');
+    tbody.innerHTML = items.map((it, i) => `
+      <tr>
+        <td style="padding:6px 8px;border:1px solid var(--border);vertical-align:top;">${i + 1}</td>
+        <td style="padding:6px 8px;border:1px solid var(--border);max-width:320px;word-break:break-all;">${escapeHtml(it.question)}</td>
+        <td style="padding:6px 8px;border:1px solid var(--border);">${escapeHtml(it.item_name || '-')}</td>
+        <td style="padding:6px 8px;border:1px solid var(--border);font-size:11px;max-width:200px;word-break:break-all;">${(it.relevant_chunk_ids || []).join(', ') || '-'}</td>
+      </tr>
+    `).join('');
+    document.getElementById('datasetPreviewModal').style.display = 'flex';
+  }
+
+  function closeDatasetPreview() {
+    document.getElementById('datasetPreviewModal').style.display = 'none';
+  }
+
+  async function deleteDataset(id) {
+    if (!confirm('确认删除此数据集及所有条目？')) return;
+    await fetch('/eval/datasets/' + id, { method: 'DELETE' });
+    loadDatasets();
+  }
+
+  document.getElementById('btnCreateDataset').onclick = async () => {
+    const name = document.getElementById('newDatasetName').value.trim();
+    if (!name) return alert('请输入数据集名称');
+    try {
+      const res = await fetch('/eval/datasets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert('创建失败: ' + (data.detail || JSON.stringify(data))); return; }
+      document.getElementById('newDatasetName').value = '';
+      loadDatasets();
+    } catch(e) { alert('创建数据集失败: ' + e.message); }
+  };
+
+  document.getElementById('importFileInput').onchange = async (e) => {
+    const datasetId = document.getElementById('evalDatasetSelect').value;
+    if (!datasetId) return alert('请先选择一个数据集');
+    const file = e.target.files[0];
+    if (!file) return;
+    const form = new FormData();
+    form.append('file', file);
+    try {
+      const res = await fetch('/eval/datasets/' + datasetId + '/import', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) { alert('导入失败: ' + (data.detail || JSON.stringify(data))); return; }
+      loadDatasets();
+    } catch(e) { alert('导入失败: ' + e.message); }
+  };
+
+  // 评估执行
+  document.getElementById('btnAddParam').onclick = async () => {
+    const kbId = parseInt(document.getElementById('evalKbSelect').value) || 1;
+    try {
+      const res = await fetch(`${API_BASE}/api/kb/${kbId}/config`);
+      const data = await res.json();
+      const cfg = data.data || {};
+
+      // 从 KB 配置的三个检索段各生成一组参数
+      const em = cfg.entity_match || {};
+      const es = cfg.embedding_search || {};
+      const hs = cfg.hyde_search || {};
+
+      const groups = [
+        {
+          name: '实体匹配',
+          dense_weight: em.dense_weight || 0.8,
+          sparse_weight: em.sparse_weight || 0.2,
+          req_limit: 5,
+          top_k: 5,
+        },
+        {
+          name: '向量检索',
+          dense_weight: es.dense_weight || 0.8,
+          sparse_weight: es.sparse_weight || 0.2,
+          req_limit: es.req_limit || 10,
+          top_k: es.top_k || 5,
+        },
+        {
+          name: 'HyDE检索',
+          dense_weight: hs.dense_weight || 0.8,
+          sparse_weight: hs.sparse_weight || 0.2,
+          req_limit: hs.req_limit || 10,
+          top_k: hs.top_k || 5,
+        },
+      ];
+
+      evalParamGroups = groups;
+      renderParamTags();
+    } catch(e) { alert('读取KB配置失败: ' + e.message); }
+  };
+
+  function renderParamTags() {
+    const container = document.getElementById('evalParamTags');
+    if (evalParamGroups.length === 0) {
+      container.innerHTML = '<span style="font-size:13px;color:#999;">尚未添加参数组</span>';
+      return;
+    }
+    container.innerHTML = evalParamGroups.map((g, i) =>
+      `<span style="background:#e9eef7;padding:6px 12px;border-radius:12px;font-size:12px;display:inline-flex;align-items:center;gap:8px;">
+        <strong>${g.name}</strong> D:${g.dense_weight} S:${g.sparse_weight} Top${g.top_k}
+        <span onclick="evalParamGroups.splice(${i},1);renderParamTags();" style="cursor:pointer;color:#e74c3c;font-weight:bold;">&times;</span>
+      </span>`
+    ).join('');
+  }
+
+  document.getElementById('btnRunEval').onclick = async () => {
+    const datasetId = document.getElementById('evalDatasetSelect').value;
+    if (!datasetId) return alert('请选择数据集');
+    if (evalParamGroups.length === 0) return alert('请至少添加一个参数组，点击"从KB配置添加参数组"');
+
+    const kbId = parseInt(document.getElementById('evalKbSelect').value) || 1;
+    const evalMode = document.getElementById('evalModeSelect').value;
+    try {
+      const res = await fetch('/eval/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataset_id: datasetId,
+          kb_id: kbId,
+          eval_mode: evalMode,
+          param_groups: evalParamGroups,
+        }),
+      });
+      const task = await res.json();
+      if (!res.ok) { alert('创建任务失败: ' + (task.detail || JSON.stringify(task))); return; }
+      alert('评估任务已启动，共 ' + task.query_count + ' 条测试');
+      pollTaskResult(task.task_id);
+    } catch(e) { alert('执行评估失败: ' + e.message); }
+  };
+
+  async function pollTaskResult(taskId) {
+    const res = await fetch('/eval/tasks/' + taskId);
+    const task = await res.json();
+    if (task.status === 'running' || task.status === 'pending') {
+      setTimeout(() => pollTaskResult(taskId), 2000);
+      return;
+    }
+    if (task.status === 'completed') {
+      renderResults(task.results);
+    } else {
+      alert('评估任务失败: ' + task.status);
+    }
+  }
+
+  function renderResults(results) {
+    document.getElementById('evalResultArea').style.display = 'block';
+    const groups = Object.entries(results);
+    if (groups.length === 0) return;
+
+    // 对比表格
+    const thead = document.querySelector('#evalCompareTable thead');
+    const tbody = document.querySelector('#evalCompareTable tbody');
+    const sampleMetrics = Object.keys(groups[0][1].overall_metrics || {});
+    thead.innerHTML = '<tr><th>参数组</th>' + sampleMetrics.map(m => `<th>${m}</th>`).join('') + '</tr>';
+    tbody.innerHTML = groups.map(([key, r]) => {
+      const p = r.params || {};
+      const label = (p.name || key) + ' D:' + (p.dense_weight ?? '-') + ' S:' + (p.sparse_weight ?? '-') + ' K=' + (p.top_k ?? '-');
+      const cells = sampleMetrics.map(m => {
+        const v = (r.overall_metrics || {})[m];
+        return '<td>' + (v !== undefined ? v.toFixed(3) : '-') + '</td>';
+      }).join('');
+      return '<tr><td>' + label + '</td>' + cells + '</tr>';
+    }).join('');
+
+    // 分阶段柱状图
+    const stageLabels = ['Embedding', 'HyDE', 'RRF', 'Rerank'];
+    const colors = ['rgba(26,167,255,0.7)', 'rgba(91,124,250,0.7)', 'rgba(46,125,82,0.7)'];
+    const chartDatasets = groups.map(([key, r], i) => {
+      const s = r.stage_metrics || {};
+      return {
+        label: (r.params || {}).name || key,
+        data: [s.embedding_recall || 0, s.hyde_recall || 0, s.rrf_recall || 0, s.rerank_recall || 0],
+        backgroundColor: colors[i % 3],
+        borderColor: colors[i % 3].replace('0.7', '1'),
+        borderWidth: 1,
+      };
+    });
+
+    const ctx = document.getElementById('evalStageChart').getContext('2d');
+    if (window._stageChart) window._stageChart.destroy();
+    window._stageChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: stageLabels, datasets: chartDatasets },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true, max: 1, title: { display: true, text: 'Recall' } } },
+        plugins: { legend: { position: 'top' } },
+      },
+    });
+  }
+
+  // ===== 从文档生成数据集 =====
+  let docGenChunks = [];
+  let docGenItems = [];
+
+  document.getElementById('btnOpenDocGen').onclick = async () => {
+    document.getElementById('docGenModal').style.display = 'flex';
+    await loadDocGenKbFiles();
+  };
+
+  function closeDocGen() {
+    document.getElementById('docGenModal').style.display = 'none';
+    docGenChunks = [];
+    docGenItems = [];
+    document.getElementById('docGenChunkList').innerHTML = '<div style="color:#999;text-align:center;padding:40px 0;">请先选择文件并点击「加载切片」</div>';
+    document.getElementById('docGenItemList').innerHTML = '<div style="color:#999;text-align:center;padding:20px 0;">尚未添加条目</div>';
+    document.getElementById('docGenChunkCount').textContent = '';
+  }
+
+  async function loadDocGenKbFiles() {
+    try {
+      const res = await fetch(`${API_BASE}/api/kb`);
+      const data = await res.json();
+      const kbs = data.data || [];
+      document.getElementById('docGenKbSelect').innerHTML =
+        kbs.map(k => `<option value="${k.id}">${escapeHtml(k.name)}</option>`).join('');
+      await loadDocGenFiles();
+    } catch(e) { console.error('加载KB列表失败', e); }
+  }
+
+  async function loadDocGenFiles() {
+    const kbId = document.getElementById('docGenKbSelect').value;
+    try {
+      const res = await fetch(`${API_BASE}/files?kb_id=${kbId}`);
+      const data = await res.json();
+      const files = data.data || [];
+      const sel = document.getElementById('docGenFileSelect');
+      sel.innerHTML = files.map(f => `<option value="${escapeHtml(f.file_name)}">${escapeHtml(f.file_name)} (${f.file_type})</option>`).join('');
+    } catch(e) { console.error('加载文件列表失败', e); }
+  }
+
+  async function loadDocGenChunks() {
+    const kbId = document.getElementById('docGenKbSelect').value;
+    let fileTitle = document.getElementById('docGenFileSelect').value;
+    if (!fileTitle) return alert('请先选择文件');
+    // Milvus 中 file_title 存的是去后缀的文件名，查询时也要去后缀
+    fileTitle = fileTitle.replace(/\.[^.]+$/, '');
+    try {
+      const res = await fetch(`/eval/chunks?kb_id=${kbId}&file_title=${encodeURIComponent(fileTitle)}`);
+      const data = await res.json();
+      docGenChunks = data.chunks || [];
+      document.getElementById('docGenChunkCount').textContent = `共 ${docGenChunks.length} 个切片`;
+      renderDocGenChunks();
+    } catch(e) { alert('加载切片失败: ' + e.message); }
+  }
+
+  function renderDocGenChunks() {
+    const container = document.getElementById('docGenChunkList');
+    if (docGenChunks.length === 0) {
+      container.innerHTML = '<div style="color:#999;text-align:center;padding:40px 0;">该文件无切片数据</div>';
+      return;
+    }
+    container.innerHTML = docGenChunks.map((c, i) => `
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:8px 6px;border-bottom:1px solid #f0f0f0;cursor:pointer;font-size:12px;">
+        <input type="checkbox" data-chunk-index="${i}" style="margin-top:2px;flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <div style="color:var(--brand);font-weight:500;margin-bottom:2px;">#${c.part || i+1} ID:${c.chunk_id} <span style="color:var(--muted);font-weight:400;">[${escapeHtml(c.item_name || '-')}]</span></div>
+          <div style="color:#56657a;line-height:1.5;word-break:break-all;">${escapeHtml(c.content || '')}</div>
+        </div>
+      </label>
+    `).join('');
+  }
+
+  function getSelectedChunkIds() {
+    const checks = document.querySelectorAll('#docGenChunkList input[type=checkbox]:checked');
+    const ids = [];
+    checks.forEach(cb => {
+      const idx = parseInt(cb.getAttribute('data-chunk-index'));
+      if (idx >= 0 && idx < docGenChunks.length) {
+        ids.push(String(docGenChunks[idx].chunk_id));
+      }
+    });
+    return ids;
+  }
+
+  function addDocGenItem() {
+    const question = document.getElementById('docGenQuestion').value.trim();
+    if (!question) return alert('请输入测试问题');
+    const chunkIds = getSelectedChunkIds();
+    if (chunkIds.length === 0) return alert('请至少勾选一个相关切片');
+    const itemName = document.getElementById('docGenItemName').value.trim();
+    docGenItems.push({
+      question: question,
+      item_name: itemName,
+      relevant_chunk_ids: chunkIds,
+      expected_answer: '',
+    });
+    document.getElementById('docGenQuestion').value = '';
+    document.getElementById('docGenItemName').value = '';
+    // 取消勾选
+    document.querySelectorAll('#docGenChunkList input[type=checkbox]:checked').forEach(cb => cb.checked = false);
+    renderDocGenItems();
+  }
+
+  function renderDocGenItems() {
+    const container = document.getElementById('docGenItemList');
+    if (docGenItems.length === 0) {
+      container.innerHTML = '<div style="color:#999;text-align:center;padding:20px 0;">尚未添加条目</div>';
+      return;
+    }
+    container.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:#f5f6f8;"><th style="padding:6px;text-align:left;border:1px solid var(--border);">#</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">问题</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">商品名</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">相关切片数</th><th style="padding:6px;text-align:left;border:1px solid var(--border);">操作</th></tr></thead>
+        <tbody>
+          ${docGenItems.map((it, i) => `
+            <tr>
+              <td style="padding:4px 6px;border:1px solid var(--border);">${i + 1}</td>
+              <td style="padding:4px 6px;border:1px solid var(--border);max-width:300px;word-break:break-all;">${escapeHtml(it.question)}</td>
+              <td style="padding:4px 6px;border:1px solid var(--border);">${escapeHtml(it.item_name || '-')}</td>
+              <td style="padding:4px 6px;border:1px solid var(--border);text-align:center;">${it.relevant_chunk_ids.length}</td>
+              <td style="padding:4px 6px;border:1px solid var(--border);">
+                <button onclick="removeDocGenItem(${i})" style="border:none;background:none;color:#e74c3c;cursor:pointer;font-size:12px;">删除</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function removeDocGenItem(index) {
+    docGenItems.splice(index, 1);
+    renderDocGenItems();
+  }
+
+  async function saveDocGenItems() {
+    if (docGenItems.length === 0) return alert('没有可保存的条目');
+    let datasetId = document.getElementById('docGenSaveDataset').value;
+    const newName = document.getElementById('docGenNewDsName').value.trim();
+
+    try {
+      if (newName) {
+        // 创建新数据集
+        const res = await fetch('/eval/datasets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName }),
+        });
+        const d = await res.json();
+        if (!res.ok) { alert('创建数据集失败: ' + (d.detail || '')); return; }
+        datasetId = d.dataset_id;
+      }
+      if (!datasetId) return alert('请选择或新建一个数据集');
+
+      const res = await fetch(`/eval/datasets/${datasetId}/items/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(docGenItems.map(it => ({
+          question: it.question,
+          item_name: it.item_name,
+          relevant_chunk_ids: it.relevant_chunk_ids,
+          expected_answer: it.expected_answer,
+        }))),
+      });
+      const result = await res.json();
+      if (!res.ok) { alert('保存失败: ' + (result.detail || '')); return; }
+
+      alert(`保存成功！已添加 ${result.added} 条条目到数据集`);
+      closeDocGen();
+      loadDatasets();
+      // 刷新保存目标下拉框
+      loadDocGenSaveDatasets();
+    } catch(e) { alert('保存失败: ' + e.message); }
+  }
+
+  async function loadDocGenSaveDatasets() {
+    const res = await fetch('/eval/datasets');
+    const data = await res.json();
+    const sel = document.getElementById('docGenSaveDataset');
+    sel.innerHTML = '<option value="">-- 选择或新建数据集 --</option>' +
+      data.items.map(d => `<option value="${d.dataset_id}">${d.name} (${d.query_count}条)</option>`).join('');
+  }
+
+  // 评估页面初始化
+  loadEvalKbSelect();
+  loadDatasets();
+  loadDocGenSaveDatasets();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+# ===== 环境变量（含敏感密钥，严禁提交）=====
+.env
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ===== 虚拟环境 =====
+.venv/
+venv/
+ENV/
+env/
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===== 运行时输出 =====
+output/
+logs/
+temp-files/
+*.log
+
+# ===== 模型文件（太大）=====
+models/
+*.bin
+*.safetensors
+*.pth
+*.ckpt
+
+# ===== 缓存 =====
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+
+# ===== 本地配置 =====
+.env.local
+.env.production
+.claude/settings.local.json
+.claude/projects/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Docker =====
+docker-compose.override.yml
