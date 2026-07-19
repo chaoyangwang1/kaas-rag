@@ -92,3 +92,11 @@ python test/05-test-main-graph.py
 - **Neo4j**：知识图谱（`NEO4J_URI`，可选）
 - **MinerU API**：PDF 解析（`MINERU_BASE_URL`）
 - **DashScope API**：LLM 调用和 MCP 网络搜索
+
+
+##测试验证
+测试验证222
+##sdasfw 
+@
+B
+CC
